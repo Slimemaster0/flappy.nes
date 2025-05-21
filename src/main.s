@@ -240,6 +240,8 @@ GAMELOOP:
     inc SCROLL
     lda SCROLL
     sta $2005
+    lda #$00
+    sta $2005
 
     ; Read input
     lda #$01
@@ -328,6 +330,53 @@ APPLYOFFSET: ; {{{
 
     ; }}}
 
+FLAP: ; {{{
+    lda JUSTFLAPPED
+    cmp #$01
+    bcs CALCULATESPEED
+
+    lda #$01
+    sta JUSTFLAPPED
+
+    
+    lda #$00
+    sta SPEEDLOW
+    lda #$fe
+    sta SPEEDHI
+
+    jmp APPLYSPEED
+
+; }}}
+
+NEGATIVESPEED: ; {{{
+    clc
+
+    ; Low byte
+    lda SUBPOSITION
+    adc SPEEDLOW
+    STA SUBPOSITION
+
+    ; High byte
+    txa
+    adc POSITION
+    sta POSITION
+    
+    jmp CHECKHEIGHT
+
+    ; }}}
+
+MAXHEIGHT: ; {{{
+    lda #$11
+    sta POSITION
+    sta SUBPOSITION
+    lda #$00
+    sta SPEEDLOW
+    sta SPEEDHI
+
+    jmp PLACEPLAYERINIT
+
+; }}}
+
 NEWPIPELEFT:
     clc
     lda $2002 ; Read PPU status to reset high/low latch
@@ -341,7 +390,7 @@ NEWPIPELEFT:
     lda NEWRNG
     sta RNG
 
-    and #$10
+    and #$0f
 
     sta $ff
 
@@ -356,9 +405,12 @@ FINDNEWPIPEID:
     sta PIPEIDLOW
     lda PIPEIDHI
     adc #$00
+    sta PIPEIDHI
+
+    inx
 
     cpx $ff
-    bne FINDNEWPIPEID
+    beq FINDNEWPIPEID
 
     
     clc
@@ -427,52 +479,6 @@ PLACEPIPELEFT:
     jmp INFLOOP
 
 
-FLAP: ; {{{
-    lda JUSTFLAPPED
-    cmp #$01
-    bcs CALCULATESPEED
-
-    lda #$01
-    sta JUSTFLAPPED
-
-    
-    lda #$00
-    sta SPEEDLOW
-    lda #$fe
-    sta SPEEDHI
-
-    jmp APPLYSPEED
-
-; }}}
-
-NEGATIVESPEED: ; {{{
-    clc
-
-    ; Low byte
-    lda SUBPOSITION
-    adc SPEEDLOW
-    STA SUBPOSITION
-
-    ; High byte
-    txa
-    adc POSITION
-    sta POSITION
-    
-    jmp CHECKHEIGHT
-
-    ; }}}
-
-MAXHEIGHT: ; {{{
-    lda #$11
-    sta POSITION
-    sta SUBPOSITION
-    lda #$00
-    sta SPEEDLOW
-    sta SPEEDHI
-
-    jmp PLACEPLAYERINIT
-
-; }}}
 
 
 
