@@ -23,12 +23,13 @@ SPEEDLOW = 	$03
 JUSTFLAPPED = 	$04
 ISDEAD =	$05
 SCROLL = 	$06
-RNGHI = 	$07
-RNGHLOW = 	$08
-OLDRNGHI = 	$09
-OLDRNGLOW = 	$0a
-NEWRNGHI = 	$0b
-NEWRNGLOW = 	$0c
+RNG = 		$07
+OLDRNG = 	$09
+NEWRNG = 	$0a
+PIPEIDHI = 	$0b
+PIPEIDLOW = 	$0c
+OLDPIPEIDHI = 	$0d
+OLDPIPEIDLOW = 	$0e
 
 
 RESET: ; {{{
@@ -47,9 +48,7 @@ RESET: ; {{{
 
     ; Random data for RNG
     lda SUBPOSITION
-    sta RNGHI
-    lda SPEEDLOW
-    sta RNGHLOW
+    sta RNG
 
     ; Clear PPU registers
     ldx #$00
@@ -94,7 +93,7 @@ LOADPALETTES:
 
     clc
     ldy #$20
-    ldx #$1e
+    ldx #$08
 DRAWPIPEINIT:
     sty $2006
     stx $2006
@@ -125,12 +124,8 @@ LOADBACKGROUND1:
     lda ROW1, y
     sta $2007
     inx
-    cpx #$1e
+    cpx #$20
     bne LOADBACKGROUND1
-    ldx #$50
-    stx $2007
-    inx
-    stx $2007
     ldx #$00
 LOADBACKGROUND2:
     txa
@@ -141,6 +136,18 @@ LOADBACKGROUND2:
     inx
     cpx #$20
     bne LOADBACKGROUND2
+
+    lda $2002 ; Read PPU status to reset high/low latch
+    lda #$23
+    sta $2006
+    lda #$88
+    sta $2006
+
+    ldx #$50
+    stx $2007
+    inx
+    stx $2007
+
 
     lda $2002 ; Read PPU status to reset high/low latch
     lda #$23
@@ -188,12 +195,7 @@ LOADBACKGROUNDCOLOR:
     sta JUSTFLAPPED
 
     INFLOOP: 
-    lda NEWRNGLOW
-    adc $01
-    sta NEWRNGLOW
-    lda NEWRNGHI
-    adc $00
-    sta NEWRNGHI
+    inc NEWRNG
     jmp INFLOOP
 ; }}}
 
@@ -311,6 +313,10 @@ POSTOFFSET:
     cpx #$10
     bne PLACEPLAYER
 
+    lda SCROLL
+    cmp #$48
+    beq NEWPIPELEFT
+
 
     jmp INFLOOP 
 
@@ -321,6 +327,105 @@ APPLYOFFSET: ; {{{
     jmp POSTOFFSET
 
     ; }}}
+
+NEWPIPELEFT:
+    clc
+    lda $2002 ; Read PPU status to reset high/low latch
+    lda PIPEIDHI
+    sta OLDPIPEIDHI
+    lda PIPEIDLOW
+    sta OLDPIPEIDLOW
+
+    lda RNG
+    sta OLDRNG
+    lda NEWRNG
+    sta RNG
+
+    and #$10
+
+    sta $ff
+
+    lda #$20
+    sta PIPEIDHI
+    lda #$68
+    sta PIPEIDLOW
+    
+    ldx #$00
+FINDNEWPIPEID:
+    adc #$20
+    sta PIPEIDLOW
+    lda PIPEIDHI
+    adc #$00
+
+    cpx $ff
+    bne FINDNEWPIPEID
+
+    
+    clc
+PLACEPIPELEFT:
+    sta $ff
+    sta $2006
+    lda PIPEIDLOW
+    sta $fe
+    sta $2006
+    
+    lda #$34
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$30
+    sta $2007
+
+    jmp INFLOOP
+
 
 FLAP: ; {{{
     lda JUSTFLAPPED
