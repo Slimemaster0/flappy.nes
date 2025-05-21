@@ -21,6 +21,15 @@ SUBPOSITION = 	$01
 SPEEDHI = 	$02
 SPEEDLOW = 	$03
 JUSTFLAPPED = 	$04
+ISDEAD =	$05
+SCROLL = 	$06
+RNGHI = 	$07
+RNGHLOW = 	$08
+OLDRNGHI = 	$09
+OLDRNGLOW = 	$0a
+NEWRNGHI = 	$0b
+NEWRNGLOW = 	$0c
+
 
 RESET: ; {{{
     SEI ; Disable Interupts
@@ -35,6 +44,12 @@ RESET: ; {{{
     ; Initialize the stack
     ldx #$FF
     txs
+
+    ; Random data for RNG
+    lda SUBPOSITION
+    sta RNGHI
+    lda SPEEDLOW
+    sta RNGHLOW
 
     ; Clear PPU registers
     ldx #$00
@@ -77,6 +92,25 @@ LOADPALETTES:
     cpx #$20
     bne LOADPALETTES
 
+    clc
+    ldy #$20
+    ldx #$1e
+DRAWPIPEINIT:
+    sty $2006
+    stx $2006
+    lda #$40
+    sta $2007
+    lda #$41
+    sta $2007
+    txa
+    adc #$20
+    tax
+    tya
+    adc #$00
+    cmp #$24
+    tay
+    bcc DRAWPIPEINIT
+
 LOADBACKGROUND:
     lda $2002 ; Read PPU status to reset high/low latch
     lda #$23
@@ -91,8 +125,12 @@ LOADBACKGROUND1:
     lda ROW1, y
     sta $2007
     inx
-    cpx #$20
+    cpx #$1e
     bne LOADBACKGROUND1
+    ldx #$50
+    stx $2007
+    inx
+    stx $2007
     ldx #$00
 LOADBACKGROUND2:
     txa
@@ -116,6 +154,15 @@ LOADBACKGROUNDCOLOR:
     inx
     cpx #$08
     bne LOADBACKGROUNDCOLOR
+
+    lda $2002
+    lda #$23
+    ldx #$df
+    ldy #$00
+    sta $2006
+    stx $2006
+
+    sty $2007
     
 
     ; Reset scroll
@@ -129,7 +176,7 @@ LOADBACKGROUNDCOLOR:
     lda #%10010000
     sta $2000 		; When VBlank occurs call NMI
 
-    lda #%00011110 	; Show sprites and background
+    lda #%00011100 	; Show sprites and background
     sta $2001
 
     ; Initialize valubles
@@ -141,20 +188,56 @@ LOADBACKGROUNDCOLOR:
     sta JUSTFLAPPED
 
     INFLOOP: 
-	jmp INFLOOP
+    lda NEWRNGLOW
+    adc $01
+    sta NEWRNGLOW
+    lda NEWRNGHI
+    adc $00
+    sta NEWRNGHI
+    jmp INFLOOP
 ; }}}
 
 NMI:
 
+    lda $2002
     lda #$02 	; Load sprite range
     sta $4014
 
-GAMELOOP:
+    lda ISDEAD
+    cmp #$01
+    bcc GAMELOOP
+
+    ; Read input
+    lda #$01
+    ; While the strobe bit is set, buttons will be continuously reloaded.
+    ; This means that reading from JOYPAD1 will only return the state of the
+    ; first button: button A.
+    sta $4016
+    lsr a        ; now A is 0
+    ; By storing 0 into $4016, the strobe bit is cleared and the reloading stops.
+    ; This allows all 8 buttons (newly reloaded) to be read from $4016.
+    sta $4016
+    lda $4016
 
     clc
-    lda POSITION
-    cmp #$10
-    bcc MAXHEIGHT
+    cmp #$41
+    bcs TRS
+	
+	; bgrSBtlg
+    lda #%00111011
+    sta $2001
+    jmp PLACEPLAYER
+
+TRS:
+    SEI
+    lda #$00
+    sta ISDEAD
+    jmp RESET
+
+GAMELOOP:
+    inc SCROLL
+    lda SCROLL
+    sta $2005
 
     ; Read input
     lda #$01
@@ -201,6 +284,19 @@ APPLYSPEED:
     adc SPEEDHI
     sta POSITION
 
+CHECKHEIGHT:
+    ; Max height
+    clc
+    lda POSITION
+    cmp #$10
+    bcc MAXHEIGHT
+
+    ; Min height
+    cmp #$cf
+    bcc PLACEPLAYERINIT
+    lda #$01
+    sta ISDEAD
+
 PLACEPLAYERINIT:
     ldx #$00
 PLACEPLAYER:
@@ -215,7 +311,8 @@ POSTOFFSET:
     cpx #$10
     bne PLACEPLAYER
 
-   jmp INFLOOP 
+
+    jmp INFLOOP 
 
 
 APPLYOFFSET: ; {{{
@@ -256,7 +353,7 @@ NEGATIVESPEED: ; {{{
     adc POSITION
     sta POSITION
     
-    jmp PLACEPLAYERINIT
+    jmp CHECKHEIGHT
 
     ; }}}
 
@@ -271,6 +368,7 @@ MAXHEIGHT: ; {{{
     jmp PLACEPLAYERINIT
 
 ; }}}
+
 
 
 ; Sprite data
