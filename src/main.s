@@ -151,6 +151,11 @@ NMI:
 
 GAMELOOP:
 
+    clc
+    lda POSITION
+    cmp #$10
+    bcc MAXHEIGHT
+
     ; Read input
     lda #$01
     ; While the strobe bit is set, buttons will be continuously reloaded.
@@ -195,7 +200,6 @@ APPLYSPEED:
     lda POSITION
     adc SPEEDHI
     sta POSITION
-
 
 PLACEPLAYERINIT:
     ldx #$00
@@ -248,9 +252,18 @@ NEGATIVESPEED:
     adc POSITION
     sta POSITION
     
-    
-    
     jmp PLACEPLAYERINIT
+
+MAXHEIGHT: 
+    lda #$11
+    sta POSITION
+    sta SUBPOSITION
+    lda #$00
+    sta SPEEDLOW
+    sta SPEEDHI
+
+    jmp PLACEPLAYERINIT
+
 
 
 ; Sprite data
