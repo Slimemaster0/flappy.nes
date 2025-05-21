@@ -218,12 +218,14 @@ POSTOFFSET:
    jmp INFLOOP 
 
 
-APPLYOFFSET:
+APPLYOFFSET: ; {{{
     clc
     adc POSITION
     jmp POSTOFFSET
 
-FLAP:
+    ; }}}
+
+FLAP: ; {{{
     lda JUSTFLAPPED
     cmp #$01
     bcs CALCULATESPEED
@@ -239,7 +241,9 @@ FLAP:
 
     jmp APPLYSPEED
 
-NEGATIVESPEED:
+; }}}
+
+NEGATIVESPEED: ; {{{
     clc
 
     ; Low byte
@@ -254,7 +258,9 @@ NEGATIVESPEED:
     
     jmp PLACEPLAYERINIT
 
-MAXHEIGHT: 
+    ; }}}
+
+MAXHEIGHT: ; {{{
     lda #$11
     sta POSITION
     sta SUBPOSITION
@@ -264,6 +270,7 @@ MAXHEIGHT:
 
     jmp PLACEPLAYERINIT
 
+; }}}
 
 
 ; Sprite data
