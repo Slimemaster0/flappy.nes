@@ -316,8 +316,12 @@ POSTOFFSET:
     bne PLACEPLAYER
 
     lda SCROLL
-    cmp #$48
+    cmp #$3f
+    beq FINDNEWPIPE
+    cmp #$40
     beq NEWPIPELEFT
+    cmp #$48
+    beq NEWPIPERIGHTJMP
 
 
     jmp INFLOOP 
@@ -339,7 +343,7 @@ FLAP: ; {{{
     sta JUSTFLAPPED
 
     
-    lda #$00
+    lda #$80
     sta SPEEDLOW
     lda #$fe
     sta SPEEDHI
@@ -377,19 +381,25 @@ MAXHEIGHT: ; {{{
 
 ; }}}
 
-NEWPIPELEFT:
+NEWPIPERIGHTJMP:
+    jmp NEWPIPERIGHT
+
+
+FINDNEWPIPE:
+    ; Copy current pipe id to old pipe id
     clc
-    lda $2002 ; Read PPU status to reset high/low latch
     lda PIPEIDHI
     sta OLDPIPEIDHI
     lda PIPEIDLOW
     sta OLDPIPEIDLOW
 
+    ; Get new rng value
     lda RNG
     sta OLDRNG
     lda NEWRNG
     sta RNG
 
+    ; Clamp RNG to 0-15
     and #$0f
 
     sta $ff
@@ -401,6 +411,7 @@ NEWPIPELEFT:
     
     ldx #$00
 FINDNEWPIPEID:
+    lda PIPEIDLOW
     adc #$20
     sta PIPEIDLOW
     lda PIPEIDHI
@@ -410,11 +421,100 @@ FINDNEWPIPEID:
     inx
 
     cpx $ff
-    beq FINDNEWPIPEID
+    bne FINDNEWPIPEID
 
-    
+    jmp INFLOOP
+
+
+NEWPIPELEFT: ; {{{
+    lda $2002 ; Read PPU status to reset high/low latch
     clc
+    lda #%00000000 	; Hide sprites and background
+    sta $2001
+
+    lda SCROLL
+    sta $2005
+    lda #$00
+    sta $2005
+
+    ; Over draw old data
+    lda OLDPIPEIDHI
+    sta $ff
+    sta $2006
+    lda OLDPIPEIDLOW
+    sta $fe
+    sta $2006
+    
+    lda #$40
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$40
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$40
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$40
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$40
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$40
+    sta $2007
+
 PLACEPIPELEFT:
+    lda PIPEIDHI
     sta $ff
     sta $2006
     lda PIPEIDLOW
@@ -473,14 +573,211 @@ PLACEPIPELEFT:
     lda $fe
     sta $2006
 
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
     lda #$30
     sta $2007
 
+    lda SCROLL
+    sta $2005
+    lda #$00
+    sta $2005
+
+    lda #%00011100 	; Show sprites and background
+    sta $2001
+
     jmp INFLOOP
 
+    ; }}}
+
+NEWPIPERIGHT: ; {{{
+    lda $2002 ; Read PPU status to reset high/low latch
+    clc
+    lda #%00000000 	; Hide sprites and background
+    sta $2001
+
+    lda SCROLL
+    sta $2005
+    lda #$00
+    sta $2005
+
+    ; Over draw old data
+    lda OLDPIPEIDHI
+    sta $ff
+    sta $2006
+    ldx OLDPIPEIDLOW
+    inx
+    stx $fe
+    stx $2006
+    
+    lda #$41
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$41
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$41
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$41
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$41
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$41
+    sta $2007
+
+PLACEPIPERIGHT:
+    lda PIPEIDHI
+    sta $ff
+    sta $2006
+    ldx PIPEIDLOW
+    inx
+    stx $fe
+    stx $2006
+    
+    lda #$35
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$00
+    sta $2007
 
 
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
 
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$00
+    sta $2007
+
+    lda $fe
+    adc #$20
+    sta $fe
+    lda $ff
+    adc #$00
+    sta $ff
+    sta $2006
+    lda $fe
+    sta $2006
+
+    lda #$31
+    sta $2007
+
+    lda SCROLL
+    sta $2005
+    lda #$00
+    sta $2005
+
+    lda #%00011100 	; Show sprites and background
+    sta $2001
+
+    jmp INFLOOP
+
+    ; }}}
 
 ; Sprite data
 PLAYERSPRITE:
