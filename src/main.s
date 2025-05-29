@@ -30,6 +30,7 @@ PIPEIDHI = 	$0b
 PIPEIDLOW = 	$0c
 OLDPIPEIDHI = 	$0d
 OLDPIPEIDLOW = 	$0e
+PIPEABSOLUTEY = $0f
 
 
 RESET: ; {{{
@@ -93,7 +94,7 @@ LOADPALETTES:
 
     clc
     ldy #$20
-    ldx #$08
+    ldx #$06
 DRAWPIPEINIT:
     sty $2006
     stx $2006
@@ -140,7 +141,7 @@ LOADBACKGROUND2:
     lda $2002 ; Read PPU status to reset high/low latch
     lda #$23
     sta $2006
-    lda #$88
+    lda #$86
     sta $2006
 
     ldx #$50
@@ -316,12 +317,14 @@ POSTOFFSET:
     bne PLACEPLAYER
 
     lda SCROLL
-    cmp #$3f
+    cmp #$2f
     beq FINDNEWPIPE
-    cmp #$40
-    beq NEWPIPELEFT
-    cmp #$48
+    cmp #$30
     beq NEWPIPERIGHTJMP
+    cmp #$df
+    bcs COLLISIONCHECKJMP
+    cmp #$38
+    beq NEWPIPELEFTJMP
 
 
     jmp INFLOOP 
@@ -381,9 +384,15 @@ MAXHEIGHT: ; {{{
 
 ; }}}
 
+
+NEWPIPELEFTJMP:
+    jmp NEWPIPELEFT
+
+COLLISIONCHECKJMP:
+    jmp COLLISIONCHECK
+
 NEWPIPERIGHTJMP:
     jmp NEWPIPERIGHT
-
 
 FINDNEWPIPE:
     ; Copy current pipe id to old pipe id
@@ -406,10 +415,13 @@ FINDNEWPIPE:
 
     lda #$20
     sta PIPEIDHI
-    lda #$68
+    sta PIPEABSOLUTEY
+    lda #$66
     sta PIPEIDLOW
-    
+
     ldx #$00
+    cpx $ff
+    beq GO2INF
 FINDNEWPIPEID:
     lda PIPEIDLOW
     adc #$20
@@ -417,14 +429,17 @@ FINDNEWPIPEID:
     lda PIPEIDHI
     adc #$00
     sta PIPEIDHI
+    lda PIPEABSOLUTEY
+    adc #$8
+    sta PIPEABSOLUTEY
 
     inx
 
     cpx $ff
     bne FINDNEWPIPEID
 
+GO2INF:
     jmp INFLOOP
-
 
 NEWPIPELEFT: ; {{{
     lda $2002 ; Read PPU status to reset high/low latch
@@ -601,6 +616,8 @@ PLACEPIPELEFT:
 
     ; }}}
 
+
+
 NEWPIPERIGHT: ; {{{
     lda $2002 ; Read PPU status to reset high/low latch
     clc
@@ -774,6 +791,24 @@ PLACEPIPERIGHT:
 
     lda #%00011100 	; Show sprites and background
     sta $2001
+
+    jmp INFLOOP
+
+COLLISIONCHECK:
+    lda POSITION
+    cmp PIPEABSOLUTEY
+    bcc KILL
+    clc
+    lda PIPEABSOLUTEY
+    adc #$10
+    cmp POSITION
+    bcc KILL
+
+    jmp INFLOOP
+
+KILL:
+    lda #$01
+    sta ISDEAD
 
     jmp INFLOOP
 
